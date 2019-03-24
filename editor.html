@@ -7,6 +7,9 @@
     <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.slim.min.js"
         integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
         crossorigin="anonymous"></script>
+    <script src="https://cdn.bootcss.com/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
     <script src="https://cdn.bootcss.com/bootstrap/4.0.0/js/bootstrap.min.js"
         integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
         crossorigin="anonymous"></script>
@@ -48,20 +51,31 @@
             width: 100%;
             height: 40em
         }
+
+        .smooth {
+            transition: 0.3s all;
+            overflow: hidden
+        }
     </style>
 
 </head>
 
 <body style='background: #eee'>
     <div class='container' style='background: white'>
-        <div class='row'>
-            <div class='col-sm-6'>
+        <div class='row' id='fold_panels'>
+            <div class='col-sm-6 smooth'>
                 <h3>代码</h3>
                 <textarea id="py_code"></textarea>
             </div>
-            <div class='col-sm-6'>
+            <div class='col-sm-4 smooth' style='max-width:0;padding:0'>
+                <h3>
+                    <nobr>输入</nobr>
+                </h3>
+                <div id="py_input" contenteditable="true" class='CodeMirror'></div>
+            </div>
+            <div class='col-sm-6 smooth'>
                 <h3>输出</h3>
-                <div id="py_output" class='CodeMirror'></div>
+                <div id="py_output" class='CodeMirror' style="overflow-y:scroll"></div>
             </div>
         </div>
         <br>
@@ -69,10 +83,68 @@
             <div class='col-sm-3'>
                 <button id='run' class='btn btn-primary form-control'>运行</button>
             </div>
+            <div class='col-sm-2'>
+                <button id='toggle_stdin' class='btn btn-secondary form-control'>展开stdin面板</button>
+            </div>
+            <div class="col-sm-2 dropdown">
+                <a href="#" class="btn btn-secondary form-control dropdown-toggle" data-toggle="dropdown">设置</a>
+                <ul class="dropdown-menu">
+                    <li>
+                        <button id='codemirror_linewrap' class='btn form-control'>自动换行: 开</button>
+                    </li>
+                </ul>
+            </div>
         </div>
         <br>
     </div>
-    <script id='brython_pool' type='text/python'></script>
+    <script id='brython_pool' type='text/python'>
+from browser import document,console
+import sys
+target=document.getElementById('py_output')
+escape_helper=document.createElement('div')
+def escape(s):
+    escape_helper.textContent=s
+    return escape_helper.innerHTML
+def write_gen(pattern):
+    def new_write(s):
+        tmp=s.split('\n')
+        first_line=True
+        for line in tmp:
+            if first_line:
+                first_line=False
+            else:
+                target.innerHTML+='<br>'
+            target.innerHTML+=pattern%escape(line)
+    return new_write
+class new_stdin:
+    def __init__(self):
+        self.text=document.getElementById('py_input').innerText
+    def read(self):
+        res,self.text=self.text,''
+        return res
+    def readline(self):
+        if '\n' in self.text:
+            ind=self.text.index('\n')
+        else:
+            ind=len(self.text)
+        res=self.text[:ind+1]
+        self.text=self.text[ind+1:]
+        return res
+    def close(self):
+        pass
+def input(t=''):
+    print(t,end='')
+    res=sys.stdin.readline()
+    if not res:
+        raise EOFError('EOF when reading a line')
+    if res[-1]=='\n':
+        res=res[:-1]
+    return res
+sys.stdout.write=write_gen('<label>%s</label>')
+sys.stderr.write=write_gen('<label class="text-danger">%s</label>')
+sys.stdin=new_stdin()
+__builtins__.input=input
+    </script>
     <script>
         var editor = CodeMirror.fromTextArea(document.getElementById("py_code"), {
             mode: "python",
@@ -86,43 +158,63 @@
         });
         var output = document.getElementById("py_output")
         var code_pool = document.getElementById("brython_pool")
+
+        // setting buttons
+        {
+            document.getElementById('codemirror_linewrap').addEventListener('click', e => {
+                var self = e.path[0]
+                e.stopPropagation();
+                editor.setOption('lineWrapping', !editor.getOption('lineWrapping'))
+                self.innerHTML = '自动换行: '
+                if (editor.getOption('lineWrapping')) self.innerHTML += '开'
+                else self.innerHTML += '关'
+            })
+
+            window.stdin_fold = true
+            document.getElementById('toggle_stdin').addEventListener('click', e => {
+                var self = e.path[0]
+                var panels = document.getElementById('fold_panels').children
+                if (window.stdin_fold) {
+                    panels[0].classList.remove('col-sm-6')
+                    panels[2].classList.remove('col-sm-6')
+                    panels[0].classList.add('col-sm-4')
+                    panels[2].classList.add('col-sm-4')
+                    panels[1].style = ''
+                    self.innerHTML = '折叠stdin面板'
+                } else {
+                    panels[0].classList.remove('col-sm-4')
+                    panels[2].classList.remove('col-sm-4')
+                    panels[0].classList.add('col-sm-6')
+                    panels[2].classList.add('col-sm-6')
+                    panels[1].style = 'max-width:0;padding:0'
+                    self.innerHTML = '展开stdin面板'
+                }
+                window.stdin_fold = !window.stdin_fold
+            })
+        }
     </script>
     <!-- brython -->
     <script id='brython' src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js"></script>
     <div id='escape_helper' style="display:none"></div>
     <script>
         var py_header = `
-from browser import document,console
-target=document.getElementById('py_output')
-escape_helper=document.createElement('div')
-def escape(s):
-    escape_helper.textContent=s
-    return escape_helper.innerHTML
+from browser import document
 import sys
-def write_gen(pattern):
-    def new_write(s):
-        tmp=s.split('\\n')
-        console.log(tmp)
-        first_line=True
-        for line in tmp:
-            if first_line:
-                first_line=False
-            else:
-                target.innerHTML+='<br>'
-            target.innerHTML+=pattern%escape(line)
-    return new_write
-
-sys.stdout.write=write_gen('<label>%s</label>')
-sys.stderr.write=write_gen('<label class="text-danger">%s</label>')
-target.innerHTML=''
+sys.stdin.text=document.getElementById('py_input').innerText
 `
         var lib = document.createElement("script");
         lib.type = "text/javascript";
         lib.src = "https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js";
         document.body.appendChild(lib);
         lib.addEventListener('load', () => {
+            // run header
+            brython()
+            code_pool.innerHTML = ''
+
+            // run button
             document.getElementById('run').addEventListener('click', () => {
                 code_pool.innerHTML = py_header + editor.getValue()
+                document.getElementById('py_output').innerHTML = ''
                 brython()
             })
         })
