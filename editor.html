@@ -1,6 +1,7 @@
 <html>
 
 <head>
+    <title>Brython</title>
     <!-- bootstrap -->
     <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css"
         integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
@@ -32,6 +33,9 @@
     <!-- 括号 -->
     <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/edit/closebrackets.min.js"></script>
     <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/edit/matchbrackets.min.js"></script>
+
+    <!-- sublime快捷键 -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/keymap/sublime.min.js"></script>
 
     <style>
         .CodeMirror {
@@ -119,22 +123,22 @@
     <script>
         // file system
         {
-            var upload_helper=document.getElementById('upload_helper')
-            var file_reader=new FileReader()
+            var upload_helper = document.getElementById('upload_helper')
+            var file_reader = new FileReader()
             document.getElementById('load_code').addEventListener('click', e => {
                 upload_helper.click()
             })
-            upload_helper.addEventListener('change',()=>{
-                if(!upload_helper.value)return
+            upload_helper.addEventListener('change', () => {
+                if (!upload_helper.value) return
                 file_reader.readAsText(upload_helper.files[0])
             })
-            file_reader.addEventListener('load',()=>{
+            file_reader.addEventListener('load', () => {
                 editor.setValue(file_reader.result)
             })
             document.getElementById('save_code').addEventListener('click', e => {
                 var save_helper = document.getElementById('save_helper')
-                save_helper.href='data:text/plain;charset=utf-8,'+encodeURIComponent(editor.getValue())
-                save_helper.download='code.py'
+                save_helper.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(editor.getValue())
+                save_helper.download = 'code.py'
                 save_helper.click()
             })
         }
@@ -149,6 +153,7 @@
             gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
             autoCloseBrackets: true,
             matchBrackets: true,
+            keyMap: 'sublime',
         });
 
         // setting buttons
@@ -187,7 +192,7 @@
     </script>
 
     <!-- brython -->
-    <script id='brython_pool' type='text/python'>
+    <script id='__main__' type='text/python'>
 from browser import document,console
 import sys
 target=document.getElementById('py_output')
@@ -230,7 +235,7 @@ __builtins__.input=input
     </script>
     <script id='brython' src="https://cdn.rawgit.com/brython-dev/brython/3.7.1/www/src/brython.js"></script>
     <script>
-        var code_pool = document.getElementById("brython_pool")
+        var code_pool = document.getElementById("__main__")
         var py_header = `
 from browser import document
 import sys
