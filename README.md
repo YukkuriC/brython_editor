@@ -4,3 +4,4 @@
 
 - 通过重写sys.stdout与sys.stderr，支持输出报错信息
 - 通过重写sys.stdin与__builtin__.input，支持自定义标准输入
+- 实现读取/保存本地py文件功能
