@@ -1,0 +1,112 @@
+<html>
+
+<head>
+    <!-- bootstrap -->
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.bootcss.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
+
+    <!-- codemirror -->
+
+    <!-- codemirror base -->
+    <link rel="stylesheet" href="https://cdn.bootcss.com/codemirror/5.44.0/codemirror.min.css" />
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/codemirror.min.js"></script>
+
+    <!-- codemirror python -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/mode/python/python.min.js"></script>
+
+    <!-- 代码折叠 -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/indent-fold.js"></script>
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/foldgutter.min.js"></script>
+    <link href="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/foldgutter.min.css" rel="stylesheet">
+
+    <!-- 括号 -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/edit/matchbrackets.min.js"></script>
+
+    <style>
+        .CodeMirror {
+            height: 40em;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.5);
+            line-height: 1em;
+            font-size: 1em;
+            font-family: "Consolas", 'Courier New', Courier, monospace
+        }
+
+        .CodeMirror-scroll {
+            overflow-y: hidden;
+            overflow-x: auto;
+        }
+
+        textarea {
+            width: 100%;
+            height: 40em
+        }
+    </style>
+
+</head>
+
+<body style='background: #eee'>
+    <div class='container' style='background: white'>
+        <div class='row'>
+            <div class='col-sm-6'>
+                <h3>代码</h3>
+                <textarea id="py_code"></textarea>
+            </div>
+            <div class='col-sm-6'>
+                <h3>输出</h3>
+                <textarea id="py_output"></textarea>
+            </div>
+            <div class='col-sm-12'>
+                <button id='run' class='btn'>运行</button>
+            </div>
+        </div>
+    </div>
+    <script id='brython_pool' type='text/python'></script>
+    <script>
+        var editor = CodeMirror.fromTextArea(document.getElementById("py_code"), {
+            mode: "python",
+            indentUnit: 4,
+            lineNumbers: true,
+            lineWrapping: true,
+            foldGutter: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            showTrailingSpace: true,
+        });
+        var output = document.getElementById("py_output")
+        var code_pool = document.getElementById("brython_pool")
+    </script>
+    <!-- brython -->
+    <script id='brython' src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js"></script>
+    <script>
+        var py_header = `
+from browser import document,console
+target=document.getElementById('py_output')
+def print(*args,end='\\n',sep=' '):
+    text=sep.join(str(i) for i in args)
+    console.log(text)
+    target.value+=text+end
+target.value=''
+`
+        var lib = document.createElement("script");
+        lib.type = "text/javascript";
+        lib.src = "https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js";
+        document.body.appendChild(lib);
+        lib.addEventListener('load', () => {
+            document.getElementById('run').addEventListener('click', () => {
+                code_pool.innerHTML = py_header + editor.getValue()
+                brython()
+            })
+        })
+    </script>
+</body>
+
+</html>
