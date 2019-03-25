@@ -105,11 +105,11 @@
                 <h3>
                     <nobr>输入</nobr>
                 </h3>
-                <div id="py_input" contenteditable="true" class='CodeMirror'></div>
+                <textarea id="py_input" style='resize:none' class='CodeMirror'></textarea>
             </div>
             <div class='col-sm-6 smooth'>
                 <h3>输出</h3>
-                <div id="py_output" class='CodeMirror' style="overflow-y:scroll"></div>
+                <pre id="py_output" class='CodeMirror' style="overflow-y:scroll"></pre>
             </div>
         </div>
         <br>
@@ -145,6 +145,15 @@
         }
 
         // codemirror
+        function newTab(cm) {
+            if (cm.somethingSelected()) {
+                cm.indentSelection('add');
+            } else {
+                var tab_value = cm.getOption("indentWithTabs") ? "\t" : Array(cm.getOption("indentUnit") + 1).join(" ")
+                cm.replaceSelection(tab_value, "end", "+input")
+            }
+        }
+
         var editor = CodeMirror.fromTextArea(document.getElementById("py_code"), {
             mode: "python",
             indentUnit: 4,
@@ -155,6 +164,7 @@
             autoCloseBrackets: true,
             matchBrackets: true,
             keyMap: 'sublime',
+            extraKeys: { Tab: newTab },
         });
 
         // auto recover
@@ -222,7 +232,7 @@ def write_gen(pattern):
     return new_write
 class new_stdin:
     def __init__(self):
-        self.text=document.getElementById('py_input').innerText
+        self.text=document.getElementById('py_input').value
     def read(self):
         res,self.text=self.text,''
         return res
@@ -244,7 +254,7 @@ def input(t=''):
     if res[-1]=='\n':
         res=res[:-1]
     return res
-sys.stdout.write=write_gen('<span>%s</span>')
+sys.stdout.write=write_gen('%s')
 sys.stderr.write=write_gen('<span class="text-danger">%s</span>')
 sys.stdin=new_stdin()
 __builtins__.input=input
@@ -253,9 +263,8 @@ __builtins__.input=input
     <script>
         var code_pool = document.getElementById("__main__")
         var py_header = `
-from browser import document
 import sys
-sys.stdin.text=document.getElementById('py_input').innerText
+sys.stdin.__init__()
 `
         var lib = document.createElement("script");
         lib.type = "text/javascript";
