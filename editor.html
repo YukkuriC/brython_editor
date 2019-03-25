@@ -61,6 +61,11 @@
             transition: 0.3s all;
             overflow: hidden
         }
+
+        #py_output {
+            white-space: pre-wrap;
+            overflow: auto !important;
+        }
     </style>
 
 </head>
@@ -89,7 +94,7 @@
                 </ul>
             </div>
             <div class='col-sm-3'>
-                <button id='run' class='btn btn-primary form-control'>运行</button>
+                <button id='run' class='btn btn-primary form-control' disabled>运行</button>
             </div>
             <div class='col-sm-2-8'>
                 <button id='toggle_stdin' class='btn btn-secondary form-control'>展开stdin面板</button>
@@ -109,7 +114,7 @@
             </div>
             <div class='col-sm-6 smooth'>
                 <h3>输出</h3>
-                <pre id="py_output" class='CodeMirror' style="overflow-y:scroll"></pre>
+                <pre id="py_output" class='CodeMirror'></pre>
             </div>
         </div>
         <br>
@@ -219,9 +224,9 @@
 
     <!-- brython -->
     <script id='__main__' type='text/python'>
-from browser import document,console
-import sys
-target=document.getElementById('py_output')
+from browser import document,console,run_script
+import sys,traceback,time
+target=document['py_output']
 escape_helper=document.createElement('div')
 def escape(s):
     escape_helper.textContent=s
@@ -258,17 +263,41 @@ sys.stdout.write=write_gen('%s')
 sys.stderr.write=write_gen('<span class="text-danger">%s</span>')
 sys.stdin=new_stdin()
 __builtins__.input=input
+
+# timer function
+def end_timer():
+    tt=time.time()
+    document['py_output'].innerHTML+="<i class='text-secondary'>用时: %.2fs</i>"%(tt-time._holder)
+    document['run'].removeAttribute('disabled')
+time._end_timer=end_timer
+
+# bind button inside brython
+script_ender='''
+import time
+time._end_timer()
+'''
+def run_bry():
+    target.innerHTML = ''
+    sys.stdin.__init__()
+    time._holder=time.time()
+    try:
+        exec(document['__main__'].innerHTML+script_ender)
+    except:
+        try:
+            traceback.print_exc()
+        except:
+            sys.stderr.write('Error!\n')
+        time._end_timer()
+document['run_brython_hook'].bind('click',run_bry)
     </script>
-    <script id='brython' src="https://cdn.rawgit.com/brython-dev/brython/3.7.1/www/src/brython.js"></script>
+    <button id='run_brython_hook' style='display:none'></button>
+    <script id='brython' src="https://cdn.bootcss.com/brython/3.7.1/brython.min.js"></script>
     <script>
         var code_pool = document.getElementById("__main__")
-        var py_header = `
-import sys
-sys.stdin.__init__()
-`
+
         var lib = document.createElement("script");
         lib.type = "text/javascript";
-        lib.src = "https://cdn.rawgit.com/brython-dev/brython/3.7.1/www/src/brython_stdlib.js";
+        lib.src = "https://cdn.bootcss.com/brython/3.7.1/brython_stdlib.js";
         document.body.appendChild(lib);
         lib.addEventListener('load', () => {
             // run header
@@ -276,10 +305,12 @@ sys.stdin.__init__()
             code_pool.innerHTML = ''
 
             // run button
-            document.getElementById('run').addEventListener('click', () => {
-                code_pool.innerHTML = py_header + editor.getValue()
-                document.getElementById('py_output').innerHTML = ''
-                brython()
+            var btn=document.getElementById('run')
+            btn.removeAttribute('disabled')
+            btn.addEventListener('click', () => {
+                btn.setAttribute('disabled','')
+                code_pool.innerHTML = editor.getValue()
+                document.getElementById('run_brython_hook').click()
             })
         })
     </script>
