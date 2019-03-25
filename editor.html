@@ -35,6 +35,7 @@
     <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/edit/matchbrackets.min.js"></script>
 
     <!-- sublime快捷键 -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/comment/comment.min.js"></script>
     <script src="https://cdn.bootcss.com/codemirror/5.44.0/keymap/sublime.min.js"></script>
 
     <style>
@@ -155,6 +156,21 @@
             matchBrackets: true,
             keyMap: 'sublime',
         });
+
+        // auto recover
+        if (window.localStorage && window.localStorage['code']) {
+            editor.setValue(window.localStorage['code'])
+        } else if (document.cookie && document.cookie.substr(0, 5) == 'code=') {
+            editor.setValue(unescape(document.cookie.substr(5)))
+        }
+        window.onunload = e => {
+            var code = editor.getValue()
+            if (window.localStorage) {
+                window.localStorage['code'] = code
+            } else {
+                document.cookie = 'code=' + escape(code)
+            }
+        }
 
         // setting buttons
         {
